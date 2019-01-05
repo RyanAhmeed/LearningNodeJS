@@ -1,16 +1,54 @@
 const express = require('express');
 const Joi = require('joi');
+const morgan = require('morgan');
+const config = require('config');
+const debug = require('debug')('app:startup');
+const courses = require('./routes/courses')
+const home = require('./routes/home')
+
+
+const logger = require('./logger')
+
 
 const app = express();
 
+app.set('view engine', 'pug');
+// app.set('views' './custome_views') # it's means if you want to store your template in custom folder.
 
-app.use(express.json());
 
-const courses = [
-	{id: 1, name: 'course1'},
-	{id: 2, name: 'course2'},
-	{id: 3, name: 'course3'}
-];
+
+//process.env.NODE_ENV // if set NODE_ENV not define then it show undefine
+
+
+/*built in middlwere in express*/
+app.use(express.json()); // it's a built in middleware. Which is  parses the boby of the middleware and if there is a json object it will populate on req.body
+  
+app.use(express.urlencoded({extended: true})); // this  middleware function parse incoming request with url example:https://1234.com/key=value&n=24
+
+app.use(express.static('public'));
+
+/* end express middlewere*/
+
+app.use('/api/courses', courses);
+
+app.use('/', home);
+
+
+console.log('Appliction Name: ' + config.get('name'));
+console.log('Mail  Server: ' + config.get('mail.host'));
+console.log('Mail  Password: ' + config.get('mail.password'));
+
+
+
+if(app.get('env') === 'development'){ // it's means morgan only work in development machine .default app.get('env') return development.
+	app.use(morgan('tiny')) // it's show log message in tiny format when do api request.
+	//console.log("Morgan is enable")
+
+	debug("Morgan is enable");
+}
+
+app.use(logger); //customer middleware function
+
 
 /*
 app instance have some method():
@@ -23,118 +61,6 @@ app.delete();
 
 call back function also called route handler :)
 */
-
-app.get('/', (req, res) => {
-	res.send("Hello, World!");
-});
-
-app.get('/api/courses', (req, res) => {
-
-	res.send(courses);
-});
-
-/*
-app.get('/api/courses/:id', (req, res) => {
-	//res.send(req.params.id)
-	res.send(req.query)
-})
-*/
-app.get('/api/courses/:id', (req, res) => {
-	const course = courses.find(c => c.id === parseInt(req.params.id))
-	if (!course){
-		res.status(404).send('The course with the given Id was not found');
-	}
-	else{
-		res.send(course)
-	}
-});
-
-app.post('/api/courses', (req, res) => {
-	const schema = {
-		name:Joi.string().min(3).required()
-	}
-	const result = Joi.validate(req.body, schema);
-	//console.log(result)
-/*
-	if(!req.body.name || req.body.name.length < 3){
-		res.status(400).send('Name is required and should be minimum 3 characters.');
-		return;  
-	}
-*/
-	if(result.error){
-		res.status(404).send(result.error.details[0].message)
-		return;
-	}
-
-	const course = {
-		id: courses.length + 1,
-		name: req.body.name
-	};
-	courses.push(course);
-	res.send(course);
-})
-
-
-app.put('/api/courses/:id', (req, res) => {
-	// Look up the course
-	// If note existing, return 404
-
-	const course = courses.find(c => c.id === parseInt(req.params.id))
-	if (!course){
-		res.status(404).send('The course with the given Id was not found');
-		return;
-	}
-
-	//Validate
-	// If invalid, return 400 - Bad request
-
-	const schema = {
-		name:Joi.string().min(3).required()
-	}
-	//const result = Joi.validate(req.body, schema);
-
-	 const {error} = validatedCourse(req.body) // object destructuring
-
-	if(error){
-		res.status(404).send(error.details[0].message)
-		return;
-	}
-
-	// Update course
-
-	course.name = req.body.name;
-
-	//Return the update
-
-	res.send(course);
-
-})
-
-app.delete('/api/courses/:id', (req, res) => {
-	// Look up the course
-	// Not existing , return 404
-	const course = courses.find(c => c.id === parseInt(req.params.id))
-	if (!course){
-		return res.status(404).send('The course with the given Id was not found');
-	}
-
-	// Delete
-	const index = courses.indexOf(course);
-	courses.splice(index, 1);
-
-	// Return the same couruse
-
-	res.send(course);
-})
-
-
-function validatedCourse(course){
-	const schema = {
-		name:Joi.string().min(3).required()
-	}
-	return Joi.validate(course, schema);
-}
-
 
 // Environment Variables 
 // Change something (check branch work :).
