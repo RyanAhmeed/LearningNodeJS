@@ -1,76 +1,101 @@
-const express = require('express');
-const Joi = require('joi');
-const morgan = require('morgan');
-const config = require('config');
-const debug = require('debug')('app:startup');
-const courses = require('./routes/courses')
-const home = require('./routes/home')
+console.log("Before");
+/*
+//Callback 1
+getUser(1, (user) =>{
+    getRepositories(user.gitHubUsername, (repos) => {
+        console.log("repos", repos);
+        getCommits(repo, (commit) => {
 
-
-const logger = require('./logger')
-
-
-const app = express();
-
-app.set('view engine', 'pug');
-// app.set('views' './custome_views') # it's means if you want to store your template in custom folder.
-
-
-
-//process.env.NODE_ENV // if set NODE_ENV not define then it show undefine
-
-
-/*built in middlwere in express*/
-app.use(express.json()); // it's a built in middleware. Which is  parses the boby of the middleware and if there is a json object it will populate on req.body
-  
-app.use(express.urlencoded({extended: true})); // this  middleware function parse incoming request with url example:https://1234.com/key=value&n=24
-
-app.use(express.static('public'));
-
-/* end express middlewere*/
-
-app.use('/api/courses', courses);
-
-app.use('/', home);
-
-
-console.log('Appliction Name: ' + config.get('name'));
-console.log('Mail  Server: ' + config.get('mail.host'));
-console.log('Mail  Password: ' + config.get('mail.password'));
-
-
-
-if(app.get('env') === 'development'){ // it's means morgan only work in development machine .default app.get('env') return development.
-	app.use(morgan('tiny')) // it's show log message in tiny format when do api request.
-	//console.log("Morgan is enable")
-
-	debug("Morgan is enable");
-}
-
-app.use(logger); //customer middleware function
+        });
+    });
+});
+*/
 
 
 /*
-app instance have some method():
-
-app.get(); // it's take two argument 1.url , 2. call back function (req, res) req = request and res = respose
-app.post();
-app.put();
-app.delete();
-
-
-call back function also called route handler :)
+//Callback 2
+getUser(1, abcfunction);
+function abcfunction(user){
+    getRepositories(user.gitHubUsername, xyzfunction);
+}
+function xyzfunction(abc){
+    console.log(abc);
+}
+*/
+/*
+const p = getUser(1);
+p.then(user => console.log(user)) 
 */
 
-// Environment Variables 
-// Change something (check branch work :).
 
-const port = process.env.PORT || 3000;
-
-app.listen(port, () => {
-	console.log(`Listening on port ${port}`)
-})
-
-
+//!Promise
+/*
+getUser(1)
+    .then(user => getRepositories(user.gitHubUsername))
+    .then(repos => getCommits(repos))
+    .then(commits => console.log("commits ", commits))
+*/
 
 
+//Async and Await approach
+async function displayCommit(){
+    try{
+        const user = await getUser(1)
+        const repos = await getRepositories(user.gitHubUsername);
+        const commits = await getCommits(repos[0]);
+    }
+    catch(err){
+        console.log('Error: ', err.message);
+    }
+
+   //console.log(commits);
+}
+displayCommit();
+console.log("After")
+
+// End 
+
+function getUser(id) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            console.log('Reading a user from a database..');
+            resolve({id: id, gitHubUsername: 'Mosh'}) 
+        }, 2000);
+    });
+/*
+    setTimeout(() => {
+        console.log('Reading a user from a database..');
+        callback({id: id, gitHubUsername: 'Mosh'}) 
+    }, 2000);
+
+*/
+}
+// deal with asynchronous we need
+// Callbacks
+// Promises
+//Async/await
+
+function getRepositories(username) {
+    return new Promise((resolve , reject) => {
+        setTimeout(() => {
+            resolve(['repo1', 'repo2', 'repo3']);
+            console.log(username);
+        }, 2000);
+    })
+
+/*
+    setTimeout(() => {
+        callback(['repo1', 'repo2', 'repo3']);
+        console.log(username);
+    }, 2000);
+*/
+}
+function getCommits(repo) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            console.log("Calling GitHub API...");
+            //resolve(['Commit']);
+            reject(new Error('This is a try catch check'));
+        }, 2000);
+    })
+}
