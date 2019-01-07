@@ -11,11 +11,44 @@ mongoose.connect("mongodb://localhost:27017/playground", config)
 
 
 const courseSchema = new mongoose.Schema({
-    name: String,
+    name: {type: String, required: true, minlength: 5, maxlength: 255},
+    category: { 
+        type: String,
+        required: true, 
+        enum:['web', 'mobile', 'network'],
+        lowercase: true, // it conver category autometicly lowercase.
+        //uppercase: true,
+        trim: true, // it's remove padding whitespace
+    },
     author: String,
-    tags: [ String ],
+    tags: {
+        type: Array,
+        /*validate: {
+            validator: function(v){
+                return v && v.length > 0; // v not be null and have to be length
+            },
+            message: "A Course should have at least one tag."
+        } */
+        validate: { // Async Validator
+            isAsync: true,
+            validator: function(v, callback){
+                setTimeout(()=> {
+                    callback(v && v.length > 0);
+                }, 400);
+            },
+            message: "A Course should have at least one tag." 
+        }
+    },
     date: { type: Date, default: Date.now },
-    isPublished: Boolean
+    isPublished: Boolean,
+    price: {
+        type: Number,
+        required: function() {return this.isPublished},
+        min: 10,
+        max: 200,
+        get: v => Math.round(v),
+        set: v => Math.round(v)
+    }
 })
 
 // Classes, objects
@@ -26,18 +59,35 @@ const Course = mongoose.model('Course', courseSchema);
 
 async function createCourse() {
     const course = new Course({
-        name: 'React Course',
+        name: 'Django ',
+        category: 'Web',
         author: 'Sajal',
-        tags: ['react', 'front-end'],
-        isPublished: true
+        tags: "Web",
+        isPublished: true,
+        price: 15.8
     });
+    try{
+        /*
+        course.validate((err) => {
+            if(err) {
+                temp = false;
+            }
+        });*/
+        const result = await course.save();
 
-    const result = await course.save();
+        console.log(result);
+    }
+    catch(ex){
+        //console.log(ex.message)
+        for (field in ex.errors){
+            console.log(ex.errors[field].message)
+        }
+    }
 
-    console.log(result);
+
 }
 
-//createCourse();
+createCourse();
 
 async function getCourses() { 
 
@@ -58,7 +108,7 @@ async function getCourses() {
 
     const courses = await Course
         .find({isPublished: true})
-        .select({name: 1})
+        .select({name: 1, category: 1})
         .sort({name: 1})
         //.find({author: 'Mosh', isPublished: true})
         //.find({price: {$gt: 10, $lte: 20}})
@@ -76,7 +126,7 @@ async function getCourses() {
 }
 
 
-getCourses();
+//getCourses();
 
 
 async function updateCourse(id){
@@ -126,4 +176,4 @@ async function removeCourse(id){
     const result = await Course.deleteOne({ _id: id})
     console.log(result);
 }   
-removeCourse('5c31f8c15eb32120e055ec56')
+//removeCourse('5c31f8c15eb32120e055ec56')
